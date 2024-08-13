@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script src="http://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <h2>員工資料</h2>
+    <br/><hr/>
+    <button id="all">查詢所有員工資料</button><br/><br/>
+    員工編號<input type="text" id="empno">
+    <button id="one">查詢</button>
+    <button id="add">新增資料</button>
+    <div id="demo"></div>
+    <script>
+    document.getElementById("all").addEventListener("click",function(){
+    //$("#all").on("click",function(){ //jquery語法
+        $.ajax({
+            url:"http://localhost:8181/employee/getall",
+            type:"GET",
+            success:function(data){
+                showall(data);
+            }
+        });
+    });
+
+        function showall(emps){
+            let txt ="<table border='1' id='table'><tr><th>員工編號<th>姓名<th>到職日<th>薪資<th>部門代號<th>職稱";
+                for(let i =0;i<emps.length;i++){
+            txt+="<tr id=c"+i+"><td>"+emps[i].empno+ "</td>";
+            txt+="<td>"+emps[i].ename +"</td>";
+            txt+="<td>"+emps[i].hiredate +"</td>";
+            txt+="<td>"+emps[i].salary +"</td>";
+            txt+="<td>"+emps[i].deptno +"</td>";
+            txt+="<td>"+emps[i].title +"</td>";
+            txt+="<td id="+i+">"+"修改"+"</td>";
+        }txt += "</table>"
+        document.getElementById("demo").innerHTML=txt;
+        //$("#demo").html(txt);//jquery 語法
+        const parentElement = document.getElementById('table');
+        parentElement.addEventListener("click",function(){
+            let clickedElement = event.target;
+            $.ajax({
+            url:`http://localhost:8181/employee/find`+"?"+clickedElement.id,
+            type:"GET",
+            success:function(data){
+                let changeForm =`<hr/><br/><form method="get" action="http://localhost:8181/employee/change">
+                            員工編號:<input type="number" name="empno" value=`+data.empno+` readonly><br/><br/>
+                            姓名:<input type="text" name="ename" value=`+data.ename+`><br/><br/>
+                            到職日:<input type="text" name="hiredate" value=`+data.salary+`><br/><br/>
+                            薪資:<input type="text" name="salary" value=`+data.hiredate+`><br/><br/>
+                            部門代號:<input type="text" name="deptno" value=`+data.deptno+`><br/><br/>
+                            職稱:<input type="text" name="title" value=`+data.title+`><br/><br/>
+                            <input type="submit" id="addsubmit" value="送出"/>
+                            </form>`
+        document.getElementById("demo").innerHTML=changeForm;
+            }
+        });
+        });
+        }
+
+        //$("#one").on("click",function(){
+        document.getElementById("one").addEventListener("click",function(){
+        let empno = document.getElementById('empno').value;
+        $.ajax({
+            url:"http://localhost:8181/employee/getone1/"+empno,
+            type:"GET",
+            success:function(data){
+                showone(data);
+            }
+        });
+    })
+        function showone(emp){
+            let txt ="<table border='1'><tr><td>員工編號</td><td>"+emp.empno+ "</td>";
+            txt+="<tr><td>姓名</td><td>"+emp.ename +"</td>";
+            txt+="<tr><td>薪資</td><td>"+emp.salary +"</td>";
+            txt+="<tr><td>到職日</td><td>"+emp.hiredate +"</td>";
+            txt+="<tr><td>部門代號</td><td>"+emp.deptno +"</td>";
+            txt+="<tr><td>職稱</td><td>"+emp.title +"</td></table>";
+            document.getElementById("demo").innerHTML=txt;
+        //    $("#demo").html(txt);
+        }
+
+
+    document.getElementById("add").addEventListener("click",function(){
+        let form =`<hr/><br/><form method="get" action="http://localhost:8181/employee/addnewdata">
+        員工編號:<input type="number" name="empno"/><br/><br/>
+        姓名:<input type="text" name="ename"/><br/><br/>
+        到職日:<input type="text" name="hiredate"/><br/><br/>
+        薪資:<input type="number" name="salary"/><br/><br/>
+        部門代號:<input type="text" name="deptno"/><br/><br/>
+        職稱:<input type="text" name="title"/><br/><br/>
+        <input type="submit" id="addsubmit" value="送出"/>
+        </form>`
+        document.getElementById("demo").innerHTML=form;
+    });
+
+    /*document.getElementById("addsubmit").addEventListener("click",function(){
+        $.ajax({
+            url:'http://localhost:8181/employee/addsubmit',
+            type:'get',
+            success:function(data){
+                window.alert(data.message);
+            }
+        })
+    });*/
+    </script>
+    </body>

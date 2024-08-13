@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-hant-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>homework2</title>
+    <link href="homework2.css" rel="stylesheet"/>
+  </head>
+  <body>
+    <div class="box">
+      <div>
+        <form
+          action="#"
+          method="get"
+          enctype="application/x-www-form-urlencoded"
+        >
+          <label for="Username">請輸入姓名</label>
+          <input type="text" id="Username" name="Username" /><span
+            id="s1"
+            class="span1"
+          ></span
+          ><br /><span class="span"
+            >(1.不可為空白 2.至少兩個字以上 3.必須全為中文字)</span
+          >
+          <hr />
+          <lable for="Password">請輸入密碼</lable>
+          <input type="password" id="Password" name="Password" /><span
+            id="s2"
+            class="span1"
+          ></span
+          ><br /><span class="span"
+            >(1.不可為空白 2.至少6個字以上並必須包含英數字和特殊字元)</span
+          >
+          <hr />
+          <span>請輸入日期</span>
+          <label
+            ><input type="text" name="Date" id="date" /><span
+              id="s3"
+              class="span1"
+            ></span></label
+          ><br /><span class="span">格式:西元年/月/日(YYYY/MM/DD)</span><br/><hr/>
+        </form>
+      </div>
+    </div>
+    <script src="homework2.js"></script>
+  </body>
+</html>

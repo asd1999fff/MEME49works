@@ -1,0 +1,12 @@
+*{
+    float: inline-start;
+}
+.div1{
+        clear: both;
+}
+table,td{
+    border: 1px rebeccapurple solid;
+    border-collapse: collapse;
+    color: saddlebrown;
+    background-color: aquamarine;
+}
