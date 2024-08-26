@@ -27,8 +27,10 @@
 #include <linux/gpio.h>     //GPIO
 #include <linux/err.h>
 #include <linux/sched.h>
-
-
+#include <linux/ktime.h>
+#include <linux/interrupt.h>
+#include <linux/irqreturn.h>
+#include <linux/timekeeping.h>
 
 
 #define ECHO (8)
@@ -39,11 +41,33 @@
 #define DEVICE_MAJOR 206
 #define DEVICE_NAME "HC-SR04"
 
-#define BUF_LEN 2
+#define BUF_LEN 1
 
 typedef unsigned char U8;
 unsigned char buf[BUF_LEN];
 unsigned char temp = 0;
+static unsigned int gpio_irq;
+static unsigned int gpio_pin = ECHO;
+static ktime_t start_time;
+static ktime_t end_time;
+static int busyflag = 1;
+
+
+static irqreturn_t timerup(int irq, void *dev_id)
+{
+	if(gpio_get_value(ECHO)){
+		start_time = ktime_get();
+		printk("timer start");
+	}
+	else
+	{
+	end_time = ktime_get();
+	printk("timer stop");
+	busyflag = 0;
+	}
+	
+	return IRQ_HANDLED;
+}
 
 
 void gpio_out(int PI ,int value)   //set gpio is output
@@ -54,20 +78,18 @@ void gpio_out(int PI ,int value)   //set gpio is output
 
 void read_data(void)
 {
-    temp = 0;
+	gpio_out(TRIG,0);
+	udelay(2);
     gpio_out(TRIG,1);
-    udelay(13);
+    udelay(10);
     gpio_out(TRIG,0);
-    while(!gpio_get_value(ECHO));
-    while(gpio_get_value(ECHO)){
-        temp++;
-    }
-    buf[0] = temp;
+	printk("read_data done");
 }
 
 
 static int test_open(struct inode *inode, struct file *file)
 {
+	busyflag = 1;
 	printk("open in kernel\n");
 	return 0;
 }
@@ -76,9 +98,12 @@ static int test_open(struct inode *inode, struct file *file)
 static ssize_t test_read(struct file *file, char* buffer,size_t size ,loff_t *off)
 {
 		int ret;
-		read_data();
+		while (busyflag);
+		buf[0] = (ktime_to_us(ktime_sub(end_time, start_time)) * 343 / 2 / 10000);
+		printk("busyflag done");
 		ret = copy_to_user(buffer,buf,sizeof(buf));
 		printk("%d",buf[0]);
+		busyflag = 1;
 		if(ret < 0)
 			{
 				printk("copy to user err\n");
@@ -91,7 +116,11 @@ static ssize_t test_read(struct file *file, char* buffer,size_t size ,loff_t *of
 		return 0;
 }
 
-
+static ssize_t test_write(struct file *file, const char *buffer, size_t size, loff_t *off)
+{
+	read_data();
+	return size;
+}
 
 
 
@@ -105,6 +134,7 @@ static struct file_operations HC_dev_fops={
 	owner	:	THIS_MODULE,
 	open	:	test_open,
 	read	:	test_read,
+	write	:	test_write,
 	release	:	test_release,
 };
 static struct class *HC_class;
@@ -112,6 +142,8 @@ static struct class *HC_class;
 static int __init test_init(void)
 {
 	int ret;
+	int result;
+	busyflag = 1;
 
 	ret =register_chrdev(DEVICE_MAJOR, DEVICE_NAME, &HC_dev_fops);
 	if (ret < 0) {
@@ -140,7 +172,7 @@ static int __init test_init(void)
 		return(ret);
 	}
 	
-	if( gpio_request( TRIG, DEVICE_NAME ) < 0 )	// request pin YELLOW 
+	if( gpio_request( TRIG, DEVICE_NAME ) < 0 )	// request pin TRIG 
 	{
 		printk( KERN_INFO "%s: %s unable to get TRIG gpio\n", DEVICE_NAME, __func__ );
 		ret = -EBUSY;
@@ -150,17 +182,34 @@ static int __init test_init(void)
 
 	gpio_out(TRIG,0);
 	gpio_direction_input(ECHO);
+	
+	gpio_irq = gpio_to_irq(ECHO);
+    if (gpio_irq < 0) {
+        printk(KERN_ERR "Unable to get IRQ number for GPIO pin %d\n", gpio_pin);
+        gpio_free(gpio_pin);
+        return gpio_irq;
+    }
+	result = request_irq(gpio_irq, timerup , IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING, "gpio_irq", NULL);
+    if (result) {
+        printk(KERN_ERR "Unable to request IRQ %d\n", gpio_irq);
+        gpio_free(gpio_pin);
+        return result;
+    }
 
+
+    printk(KERN_INFO "GPIO interrupt module initialized\n");
+	
 
 	return 0 ;
 }
 
 static void __exit test_exit(void)
 {
+	free_irq(gpio_irq, NULL);
 	gpio_free(ECHO);
 	gpio_free(TRIG);
-	device_destroy(light_class,DEVICE_MAJOR);
-	class_destroy(light_class);
+	device_destroy(HC_class,DEVICE_MAJOR);
+	class_destroy(HC_class);
 	unregister_chrdev(DEVICE_MAJOR, DEVICE_NAME);
 }
 module_init(test_init);
